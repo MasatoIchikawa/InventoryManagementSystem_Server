@@ -180,6 +180,30 @@ app.post('/mstinventory_delete', (req, res) => {
           });
 });
 
+app.get('/inout', (req, res) => {
+  const sql = `SELECT 
+               t_inout.inout_id,
+               t_inout.inout_flag,
+               t_inout.inout_datetime ,
+               t_inout.inventory,
+               t_inout.note,
+               m_inventory.inventory_name
+               FROM t_inout
+               INNER JOIN stock.m_inventory ON t_inout.inventory_id = m_inventory.inventory_id
+                   AND m_inventory.delete_at IS NULL
+                   AND m_inventory.update_at IS NULL
+               WHERE t_inout.delete_at IS NULL
+               AND t_inout.update_at IS NULL
+               ORDER BY t_inout.insert_at DESC`;
+  connection.query(sql, function (err, result, fields) {
+      if (err) {
+          connection.rollback(() => err);
+          throw err;
+      }
+      res.status(200).json(result);
+  });
+});
+
 app.listen(port, () => {
     console.log(`listening on *:${port}`);
 })
