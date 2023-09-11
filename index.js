@@ -70,23 +70,28 @@ app.post('/mstinventory_insert', async (req, res, next) => {
           })
           console.log('=== done beginTransaction ===')
 
-          await new Promise((resolve, reject) => {
-            const update = `UPDATE m_inventory
-            SET update_at = NOW()
-            WHERE inventory_id = ?`;
+          if(req.body.inventory_id !== 0){
+            await new Promise((resolve, reject) => {
+              const update = `UPDATE m_inventory
+                              SET update_at = NOW()
+                              WHERE inventory_id = ?
+                              AND update_at IS NULL`;
 
-            const updateparam = [
-                req.body.inventory_id,
-            ];
-            connection.query(update, updateparam, (error, results) => {
-              if (error) reject(error)
-              resolve(results)
+              const updateparam = [
+                  req.body.inventory_id,
+              ];
+              connection.query(update, updateparam, (error, results) => {
+                if (error) reject(error)
+                resolve(results)
+              })
             })
-          })
-          console.log('=== done update ===');
+            console.log('=== done update ===');
+          }
 
           await new Promise((resolve, reject) => {
-            const insert = ` INSERT m_inventory(
+            const id = req.body.inventory_id !== 0 ? req.body.inventory_id : '(SELECT IFNULL(max_id + 1, 1) from (SELECT max(inventory_id) AS max_id FROM m_inventory) AS temp)';
+            const insert = `INSERT m_inventory(
+                inventory_id,
                 inventory_name,
                 inventory_kana,
                 picture, 
@@ -106,7 +111,7 @@ app.post('/mstinventory_insert', async (req, res, next) => {
                 update_at,
                 delete_at,
                 insert_user_id)
-                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NULL, NULL, ?)`;
+                VALUES(` + id + `, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NULL, NULL, ?)`;
 
             const insertparam = [
                 req.body.inventory_name,
@@ -126,8 +131,12 @@ app.post('/mstinventory_insert', async (req, res, next) => {
                 req.body.display_flag,
                 req.body.insert_user_id
             ];
+            
             connection.query(insert, insertparam, (error, results) => {
-              if (error) reject(error)
+              if (error) {
+                console.log(error);
+                reject(error);
+              }
               resolve(results)
             })
           })
