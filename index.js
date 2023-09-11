@@ -68,7 +68,7 @@ app.post('/mstinventory_insert', async (req, res, next) => {
               resolve(results)
             })
           })
-          console.log('=== done beginTransaction ===')
+          // console.log('=== done beginTransaction ===')
 
           if(req.body.inventory_id !== 0){
             await new Promise((resolve, reject) => {
@@ -85,7 +85,7 @@ app.post('/mstinventory_insert', async (req, res, next) => {
                 resolve(results)
               })
             })
-            console.log('=== done update ===');
+            // console.log('=== done update ===');
           }
 
           await new Promise((resolve, reject) => {
@@ -140,7 +140,7 @@ app.post('/mstinventory_insert', async (req, res, next) => {
               resolve(results)
             })
           })
-          console.log('=== done insert ===');
+          // console.log('=== done insert ===');
 
           await new Promise((resolve, reject) => {
             connection.commit((error, results) => {
@@ -148,7 +148,7 @@ app.post('/mstinventory_insert', async (req, res, next) => {
               resolve(results)
             })
           })
-          console.log('=== done commit ===');
+          // console.log('=== done commit ===');
       }
       catch{
         await new Promise((resolve, reject) => {
@@ -161,9 +161,9 @@ app.post('/mstinventory_insert', async (req, res, next) => {
       }
       finally{
         connection.release();
-        console.log('=== done release ===');
+        // console.log('=== done release ===');
         pool.end();
-        console.log('=== done poolend ===');
+        // console.log('=== done poolend ===');
       }
 });
 
