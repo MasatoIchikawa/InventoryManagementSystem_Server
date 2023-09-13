@@ -27,8 +27,9 @@ const connection = mysql.createConnection({
 
 app.get('/mstinventory', (req, res) => {
     const sql = `SELECT * FROM m_inventory
-    WHERE delete_at IS NULL
-    AND update_at IS NULL`;
+                 WHERE delete_at IS NULL
+                 AND update_at IS NULL
+                 ORDER BY inventory_id`;
     connection.query(sql, function (err, result, fields) {
         if (err) {
             connection.rollback(() => err);
@@ -68,7 +69,6 @@ app.post('/mstinventory_insert', async (req, res, next) => {
               resolve(results)
             })
           })
-          // console.log('=== done beginTransaction ===')
 
           if(req.body.inventory_id !== 0){
             await new Promise((resolve, reject) => {
@@ -85,7 +85,6 @@ app.post('/mstinventory_insert', async (req, res, next) => {
                 resolve(results)
               })
             })
-            // console.log('=== done update ===');
           }
 
           await new Promise((resolve, reject) => {
@@ -140,7 +139,6 @@ app.post('/mstinventory_insert', async (req, res, next) => {
               resolve(results)
             })
           })
-          // console.log('=== done insert ===');
 
           await new Promise((resolve, reject) => {
             connection.commit((error, results) => {
@@ -148,7 +146,7 @@ app.post('/mstinventory_insert', async (req, res, next) => {
               resolve(results)
             })
           })
-          // console.log('=== done commit ===');
+          res.status(200).send();
       }
       catch{
         await new Promise((resolve, reject) => {
@@ -158,12 +156,11 @@ app.post('/mstinventory_insert', async (req, res, next) => {
             })
           })
           console.log('=== done rollback ===')
+          res.status(400).send();
       }
       finally{
         connection.release();
-        // console.log('=== done release ===');
         pool.end();
-        // console.log('=== done poolend ===');
       }
 });
 
