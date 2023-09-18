@@ -201,6 +201,98 @@ app.get('/inout', (req, res) => {
   });
 });
 
+app.post('/input/insert', async (req, res, next) => {
+  const pool = mysql.createPool(poolOption);
+  const connection = await new Promise((resolve, reject) => {
+      pool.getConnection((error, connection) => {
+        if (error) reject(error)
+        resolve(connection)
+      })
+    })
+
+    try{
+        await new Promise((resolve, reject) => {
+          connection.beginTransaction((error, results) => {
+            if (error) reject(error)
+            resolve(results)
+          })
+        })
+
+        if(req.body.inventory_id !== 0){
+          await new Promise((resolve, reject) => {
+            const update = `UPDATE t_inout
+                            SET update_at = NOW()
+                            WHERE inout_id = ?
+                            AND update_at IS NULL`;
+
+            const updateparam = [
+                req.body.inventory_id,
+            ];
+            connection.query(update, updateparam, (error, results) => {
+              if (error) reject(error)
+              resolve(results)
+            })
+          })
+        }
+
+        await new Promise((resolve, reject) => {
+          const id = req.body.inventory_id !== 0 ? req.body.inventory_id : '(SELECT IFNULL(max_id + 1, 1) from (SELECT max(inout_id) AS max_id FROM t_inout) AS temp)';
+          const insert = `INSERT t_inout(
+            inout_id,
+            inout_flag,
+            inout_datetime,
+            inventory_id,
+            inventory,
+            note,
+            insert_at,
+            update_at,
+            delete_at,
+            insert_user_id
+            )
+              VALUES(` + id + `, ?, ?, ?, ?, ?, NOW(), NULL, NULL, ?)`;
+
+          const insertparam = [
+              req.body.inout_flag,
+              req.body.inout_datetime,
+              req.body.inventory_id,
+              req.body.inventory,
+              req.body.note,
+              req.body.insert_user_id
+          ];
+          
+          connection.query(insert, insertparam, (error, results) => {
+            if (error) {
+              console.log(error);
+              reject(error);
+            }
+            resolve(results)
+          })
+        })
+
+        await new Promise((resolve, reject) => {
+          connection.commit((error, results) => {
+            if (error) reject(error)
+            resolve(results)
+          })
+        })
+        res.status(200).send();
+    }
+    catch{
+      await new Promise((resolve, reject) => {
+          connection.rollback((error, results) => {
+            if (error) reject(error)
+            resolve(results)
+          })
+        })
+        console.log('=== done rollback ===')
+        res.status(400).send();
+    }
+    finally{
+      connection.release();
+      pool.end();
+    }
+});
+
 app.listen(port, () => {
     console.log(`listening on *:${port}`);
 })
