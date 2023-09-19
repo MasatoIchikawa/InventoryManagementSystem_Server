@@ -39,6 +39,21 @@ app.get('/mstinventory', (req, res) => {
     });
 });
 
+app.get('/mstinventory/display', (req, res) => {
+  const sql = `SELECT * FROM m_inventory
+               WHERE delete_at IS NULL
+               AND update_at IS NULL
+               AND display_flag = 1
+               ORDER BY inventory_id`;
+  connection.query(sql, function (err, result, fields) {
+      if (err) {
+          connection.rollback(() => err);
+          throw err;
+      }
+      res.status(200).json(result);
+  });
+});
+
 app.get('/mstinventory_edit', (req, res) => {
     const sql = `SELECT * FROM m_inventory
                  WHERE inventory_id = ?`;
