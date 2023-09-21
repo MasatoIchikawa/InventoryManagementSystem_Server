@@ -206,7 +206,7 @@ app.get('/inout', (req, res) => {
                    AND m_inventory.update_at IS NULL
                WHERE t_inout.delete_at IS NULL
                AND t_inout.update_at IS NULL
-               ORDER BY t_inout.insert_at DESC`;
+               ORDER BY t_inout.inout_id`;
   connection.query(sql, function (err, result, fields) {
       if (err) {
           connection.rollback(() => err);
@@ -233,7 +233,7 @@ app.post('/input/insert', async (req, res, next) => {
           })
         })
 
-        if(req.body.inventory_id !== 0){
+        if(req.body.inout_id !== 0){
           await new Promise((resolve, reject) => {
             const update = `UPDATE t_inout
                             SET update_at = NOW()
@@ -241,7 +241,7 @@ app.post('/input/insert', async (req, res, next) => {
                             AND update_at IS NULL`;
 
             const updateparam = [
-                req.body.inventory_id,
+                req.body.inout_id,
             ];
             connection.query(update, updateparam, (error, results) => {
               if (error) reject(error)
@@ -251,7 +251,7 @@ app.post('/input/insert', async (req, res, next) => {
         }
 
         await new Promise((resolve, reject) => {
-          const id = req.body.inventory_id !== 0 ? req.body.inventory_id : '(SELECT IFNULL(max_id + 1, 1) from (SELECT max(inout_id) AS max_id FROM t_inout) AS temp)';
+          const id = req.body.inout_id !== 0 ? req.body.inout_id : '(SELECT IFNULL(max_id + 1, 1) from (SELECT max(inout_id) AS max_id FROM t_inout) AS temp)';
           const insert = `INSERT t_inout(
             inout_id,
             inout_flag,
