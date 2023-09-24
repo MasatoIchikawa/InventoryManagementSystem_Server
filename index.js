@@ -103,7 +103,6 @@ app.post('/mstinventory_insert', async (req, res, next) => {
           }
 
           await new Promise((resolve, reject) => {
-            const id = req.body.inventory_id !== 0 ? req.body.inventory_id : '(SELECT IFNULL(max_id + 1, 1) from (SELECT max(inventory_id) AS max_id FROM m_inventory) AS temp)';
             const insert = `INSERT m_inventory(
                 inventory_id,
                 inventory_name,
@@ -125,7 +124,7 @@ app.post('/mstinventory_insert', async (req, res, next) => {
                 update_at,
                 delete_at,
                 insert_user_id)
-                VALUES(` + id + `, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NULL, NULL, ?)`;
+                VALUES((SELECT IFNULL(max_id + 1, 1) from (SELECT max(inventory_id) AS max_id FROM m_inventory) AS temp), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NULL, NULL, ?)`;
 
             const insertparam = [
                 req.body.inventory_name,
@@ -206,7 +205,7 @@ app.get('/inout', (req, res) => {
                    AND m_inventory.update_at IS NULL
                WHERE t_inout.delete_at IS NULL
                AND t_inout.update_at IS NULL
-               ORDER BY t_inout.inout_id`;
+               ORDER BY t_inout.inout_datetime DESC`;
   connection.query(sql, function (err, result, fields) {
       if (err) {
           connection.rollback(() => err);
@@ -251,7 +250,6 @@ app.post('/input/insert', async (req, res, next) => {
         }
 
         await new Promise((resolve, reject) => {
-          const id = req.body.inout_id !== 0 ? req.body.inout_id : '(SELECT IFNULL(max_id + 1, 1) from (SELECT max(inout_id) AS max_id FROM t_inout) AS temp)';
           const insert = `INSERT t_inout(
             inout_id,
             inout_flag,
@@ -264,7 +262,7 @@ app.post('/input/insert', async (req, res, next) => {
             delete_at,
             insert_user_id
             )
-              VALUES(` + id + `, ?, ?, ?, ?, ?, NOW(), NULL, NULL, ?)`;
+              VALUES((SELECT IFNULL(max_id + 1, 1) from (SELECT max(inout_id) AS max_id FROM t_inout) AS temp), ?, ?, ?, ?, ?, NOW(), NULL, NULL, ?)`;
 
           const insertparam = [
               req.body.inout_flag,
@@ -306,6 +304,33 @@ app.post('/input/insert', async (req, res, next) => {
       connection.release();
       pool.end();
     }
+});
+
+app.get('/inout/edit', (req, res) => {
+  const sql = `SELECT * FROM t_inout
+               WHERE inout_id = ?`;
+  connection.query(sql, [req.query.inout_id],
+      (error, result) => {
+          if(error) {
+              console.log(error)
+          }
+          else{
+              res.status(200).json(result);
+          }
+      });
+});
+
+app.post('/inout/delete', (req, res) => {
+  const sql = 'UPDATE t_inout SET delete_at = NOW() WHERE inout_id = ?';
+  connection.query(sql, [req.body.inventory_id],
+      (error, result) => {
+          if(error) {
+              console.log(error)
+          }
+          else{
+              res.status(200).json(result);
+          }
+        });
 });
 
 app.listen(port, () => {
