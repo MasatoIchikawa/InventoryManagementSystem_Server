@@ -333,6 +333,43 @@ app.post('/inout/delete', (req, res) => {
         });
 });
 
+app.get('/inventorylist', (req, res) => {
+  const sql = `SELECT 
+               m_inventory.inventory_id,
+               m_inventory.inventory_name,
+               m_inventory.inventory_kana,
+               m_inventory.picture,
+               m_inventory.jancode,
+               m_inventory.skucode,
+               m_inventory.price,
+               m_inventory.location,
+               m_inventory.note,
+               m_category.category_name,
+               m_unit.unit_name,
+               (SELECT SUM(CASE inout_flag WHEN 1 THEN inventory WHEN 2 THEN -inventory ELSE 0 END) AS number
+                FROM t_inout
+                WHERE t_inout.update_at IS NULL
+                AND t_inout.delete_at IS NULL
+                AND t_inout.inventory_id = m_inventory.inventory_id) AS number
+               FROM m_inventory
+               LEFT JOIN m_category ON m_inventory.category_id = m_category.category_id
+                AND m_category.update_at IS NULL
+                AND m_category.delete_at IS NULL
+              LEFT JOIN m_unit ON m_inventory.unit_id = m_unit.unit_id
+                AND m_unit.update_at IS NULL
+                AND m_unit.delete_at IS NULL
+              WHERE m_inventory.update_at IS NULL
+              AND m_inventory.delete_at IS NULL
+              ORDER BY m_inventory.inventory_id`;
+  connection.query(sql, function (err, result, fields) {
+      if (err) {
+          connection.rollback(() => err);
+          throw err;
+      }
+      res.status(200).json(result);
+  });
+});
+
 app.listen(port, () => {
     console.log(`listening on *:${port}`);
 })
