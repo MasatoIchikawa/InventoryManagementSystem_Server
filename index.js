@@ -370,6 +370,156 @@ app.get('/inventorylist', (req, res) => {
   });
 });
 
+app.get('/master/account', (req, res) => {
+  const sql = `SELECT * FROM m_user
+               WHERE update_at IS NULL
+               AND delete_at IS NULL
+               ORDER BY user_id`;
+  connection.query(sql, function (err, result, fields) {
+      if (err) {
+          connection.rollback(() => err);
+          throw err;
+      }
+      res.status(200).json(result);
+  });
+});
+
+app.get('/master/account/edit', (req, res) => {
+  const sql = `SELECT * FROM m_user
+               WHERE user_id = ?
+               AND update_at IS NULL
+               AND delete_at IS NULL`;
+  connection.query(sql, [req.query.user_id],
+      (error, result) => {
+          if(error) {
+              console.log(error)
+          }
+          else{
+              res.status(200).json(result);
+          }
+      });
+});
+
+app.post('/master/account/insert', async (req, res, next) => {
+  const pool = mysql.createPool(poolOption);
+  const connection = await new Promise((resolve, reject) => {
+      pool.getConnection((error, connection) => {
+        if (error) reject(error)
+        resolve(connection)
+      })
+    })
+
+    try{
+        await new Promise((resolve, reject) => {
+          connection.beginTransaction((error, results) => {
+            if (error) reject(error)
+            resolve(results)
+          })
+        })
+
+        if(req.body.user_id !== 0){
+          await new Promise((resolve, reject) => {
+            const update = `UPDATE m_user
+                            SET update_at = NOW()
+                            WHERE user_id = ?
+                            AND update_at IS NULL`;
+
+            const updateparam = [
+                req.body.user_id,
+            ];
+            connection.query(update, updateparam, (error, results) => {
+              if (error) reject(error)
+              resolve(results)
+            })
+          })
+        }
+
+        const id = req.body.user_id !== 0 ? req.body.user_id : "(SELECT IFNULL(max_id + 1, 1) from (SELECT max(inout_id) AS max_id FROM t_inout) AS temp)";
+        await new Promise((resolve, reject) => {
+          const insert = `INSERT m_user(
+            user_id,
+            user_name,
+            login_id,
+            login_password,
+            authority_level,
+            insert_at,
+            update_at,
+            delete_at,
+            insert_user_id
+            )
+              VALUES(`+ id +`, ?, ?, ?, ?, NOW(), NULL, NULL, ?)`;
+
+          const insertparam = [
+              req.body.user_name,
+              req.body.login_id,
+              req.body.login_password,
+              req.body.authority_level,
+              req.body.insert_user_id,
+          ];
+          
+          connection.query(insert, insertparam, (error, results) => {
+            if (error) {
+              console.log(error);
+              reject(error);
+            }
+            resolve(results)
+          })
+        })
+
+        await new Promise((resolve, reject) => {
+          connection.commit((error, results) => {
+            if (error) reject(error)
+            resolve(results)
+          })
+        })
+        res.status(200).send();
+    }
+    catch{
+      await new Promise((resolve, reject) => {
+          connection.rollback((error, results) => {
+            if (error) reject(error)
+            resolve(results)
+          })
+        })
+        console.log('=== done rollback ===')
+        res.status(400).send();
+    }
+    finally{
+      connection.release();
+      pool.end();
+    }
+});
+
+app.post('/master/account/delete', (req, res) => {
+  const sql = 'UPDATE m_user SET delete_at = NOW() WHERE user_id = ?';
+  connection.query(sql, [req.body.user_id],
+      (error, result) => {
+          if(error) {
+              console.log(error)
+          }
+          else{
+              res.status(200).json(result);
+          }
+        });
+});
+
+app.get('/login', (req, res) => {
+  const sql = `SELECT * FROM m_user
+               WHERE login_id = ?
+               AND login_password = ?
+               AND update_at IS NULL
+               AND delete_at IS NULL`;
+  connection.query(sql, [req.query.login_id, req.query.login_password],
+      (error, result) => {
+          if(error) {
+            console.log(error)
+          }
+          else{
+            res.status(200).json(result);
+          }
+        });
+});
+
 app.listen(port, () => {
     console.log(`listening on *:${port}`);
 })
