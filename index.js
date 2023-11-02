@@ -29,7 +29,7 @@ app.get('/mstinventory', (req, res) => {
     const sql = `SELECT * FROM m_inventory
                  WHERE delete_at IS NULL
                  AND update_at IS NULL
-                 ORDER BY inventory_id`;
+                 ORDER BY display_no`;
     connection.query(sql, function (err, result, fields) {
         if (err) {
             connection.rollback(() => err);
@@ -44,7 +44,7 @@ app.get('/mstinventory/display', (req, res) => {
                WHERE delete_at IS NULL
                AND update_at IS NULL
                AND display_flag = 1
-               ORDER BY inventory_id`;
+               ORDER BY display_no`;
   connection.query(sql, function (err, result, fields) {
       if (err) {
           connection.rollback(() => err);
@@ -68,7 +68,7 @@ app.get('/mstinventory_edit', (req, res) => {
         });
 });
 
-app.post('/mstinventory_insert', async (req, res, next) => {
+app.post('/mstinventory/insert', async (req, res, next) => {
     const pool = mysql.createPool(poolOption);
     const connection = await new Promise((resolve, reject) => {
         pool.getConnection((error, connection) => {
@@ -107,41 +107,31 @@ app.post('/mstinventory_insert', async (req, res, next) => {
                 inventory_id,
                 inventory_name,
                 inventory_kana,
-                picture, 
-                category_id,
+                tag, 
                 jancode,
                 skucode,
-                unit_id,
-                price,
-                price_cost,
-                inventory_max,
-                inventory_min,
+                unit,
                 location,
-                url,
                 note,
                 display_flag,
+                display_no,
                 insert_at,
                 update_at,
                 delete_at,
                 insert_user_id)
-                VALUES((SELECT IFNULL(max_id + 1, 1) from (SELECT max(inventory_id) AS max_id FROM m_inventory) AS temp), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NULL, NULL, ?)`;
+                VALUES((SELECT IFNULL(max_id + 1, 1) from (SELECT max(inventory_id) AS max_id FROM m_inventory) AS temp), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NULL, NULL, ?)`;
 
             const insertparam = [
                 req.body.inventory_name,
                 req.body.inventory_kana,
-                req.body.picture,
-                req.body.category_id,
+                req.body.tag,
                 req.body.jancode,
                 req.body.skucode,
-                req.body.unit_id,
-                req.body.price,
-                req.body.price_cost,
-                req.body.inventory_max,
-                req.body.inventory_min,
+                req.body.unit,
                 req.body.location,
-                req.body.url,
                 req.body.note,
                 req.body.display_flag,
+                req.body.display_no,
                 req.body.insert_user_id
             ];
             
@@ -178,7 +168,7 @@ app.post('/mstinventory_insert', async (req, res, next) => {
       }
 });
 
-app.post('/mstinventory_delete', (req, res) => {
+app.post('/mstinventory/delete', (req, res) => {
     const sql = 'UPDATE m_inventory SET delete_at = NOW() WHERE inventory_id = ?';
     connection.query(sql, [req.body.inventory_id],
         (error, result) => {
@@ -196,7 +186,7 @@ app.get('/inout', (req, res) => {
                t_inout.inout_id,
                t_inout.inout_flag,
                t_inout.inout_datetime ,
-               t_inout.inventory,
+               t_inout.quantity,
                t_inout.note,
                m_inventory.inventory_name
                FROM t_inout
@@ -338,29 +328,22 @@ app.get('/inventorylist', (req, res) => {
                m_inventory.inventory_id,
                m_inventory.inventory_name,
                m_inventory.inventory_kana,
-               m_inventory.picture,
                m_inventory.jancode,
                m_inventory.skucode,
-               m_inventory.price,
                m_inventory.location,
                m_inventory.note,
-               m_category.category_name,
-               m_unit.unit_name,
-               (SELECT SUM(CASE inout_flag WHEN 1 THEN inventory WHEN 2 THEN -inventory ELSE 0 END) AS number
+               m_inventory.tag,
+               m_inventory.unit,
+               (SELECT SUM(CASE inout_flag WHEN 1 THEN quantity WHEN 2 THEN -quantity ELSE 0 END) AS number
                 FROM t_inout
                 WHERE t_inout.update_at IS NULL
                 AND t_inout.delete_at IS NULL
                 AND t_inout.inventory_id = m_inventory.inventory_id) AS number
                FROM m_inventory
-               LEFT JOIN m_category ON m_inventory.category_id = m_category.category_id
-                AND m_category.update_at IS NULL
-                AND m_category.delete_at IS NULL
-              LEFT JOIN m_unit ON m_inventory.unit_id = m_unit.unit_id
-                AND m_unit.update_at IS NULL
-                AND m_unit.delete_at IS NULL
               WHERE m_inventory.update_at IS NULL
               AND m_inventory.delete_at IS NULL
-              ORDER BY m_inventory.inventory_id`;
+              AND m_inventory.display_flag = 1
+              ORDER BY m_inventory.display_no`;
   connection.query(sql, function (err, result, fields) {
       if (err) {
           connection.rollback(() => err);
@@ -441,19 +424,23 @@ app.post('/master/account/insert', async (req, res, next) => {
             user_name,
             login_id,
             login_password,
-            authority_level,
+            administrator,
+            display_flag,
+            display_no,
             insert_at,
             update_at,
             delete_at,
             insert_user_id
             )
-              VALUES(`+ id +`, ?, ?, ?, ?, NOW(), NULL, NULL, ?)`;
+              VALUES(`+ id +`, ?, ?, ?, ?, ?, ?, NOW(), NULL, NULL, ?)`;
 
           const insertparam = [
               req.body.user_name,
               req.body.login_id,
               req.body.login_password,
-              req.body.authority_level,
+              req.body.administrator,
+              req.body.display_flag,
+              req.body.display_no,
               req.body.insert_user_id,
           ];
           
