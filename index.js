@@ -25,6 +25,10 @@ const connection = mysql.createConnection({
     database: 'stock'
 });
 
+app.get('/', function(request, response){ 
+  response.send ('Hello World!\n'); 
+});
+
 app.get('/mstinventory', (req, res) => {
     const sql = `SELECT * FROM m_inventory
                  WHERE delete_at IS NULL
