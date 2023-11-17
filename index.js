@@ -6,27 +6,37 @@ const express = require('express');
 const mysql = require('mysql2');
 const app = express();
 const port = 3001;
+// const port = 3306;
 
 app.use(express.json());
 
-const poolOption = {
-    connectionLimit : 1,
-    host: 'localhost',
-    user: 'root',
-    password: 'xeno1508',
-    database: 'stock',
-    timezone: 'jst'
-};
+// const poolOption = {
+//     connectionLimit : 1,
+//     host: 'eanl4i1omny740jw.cbetxkdyhwsb.us-east-1.rds.amazonaws.com',
+//     user: 'f4l8tyroombu7krp',
+//     password: 'd0azhfyify5axnt4',
+//     database: 'o9patnasz3100ghx',
+//     timezone: 'jst'
+// };
+
+// var connection = mysql.createConnection(process.env.JAWSDB_URL);
+
+// const connection = mysql.createConnection({
+//     host: 'eanl4i1omny740jw.cbetxkdyhwsb.us-east-1.rds.amazonaws.com',
+//     user: 'f4l8tyroombu7krp',
+//     password: 'd0azhfyify5axnt4',
+//     database: 'o9patnasz3100ghx'
+// });
 
 const connection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'xeno1508',
-    database: 'stock'
+  host: 'localhost',
+  user: 'root',
+  password: 'xeno1508',
+  database: 'stock'
 });
 
 app.get('/', function(request, response){ 
-  response.send ('Hello World!\n'); 
+  response.send ('Hello Worlds!\n'); 
 });
 
 app.get('/mstinventory', (req, res) => {
@@ -73,6 +83,22 @@ app.get('/mstinventory_edit', (req, res) => {
 });
 
 app.post('/mstinventory/insert', async (req, res, next) => {
+  // (async () => {
+  //   try {
+  //     await mysqlPromise.beginTransaction(connection);
+  //     const results = await mysqlPromise.query(connection, 'INSERT INTO posts (content) VALUES (?)', ['Hello!']);
+  //     var log = 'Post ' + results.insertId + ' added';
+  //     await mysqlPromise.query(connection, 'INSERT INTO logs (message) VALUES (?)', log);
+  //     await mysqlPromise.commit(connection);
+  //   } catch (err) {
+  //     await mysqlPromise.rollback(connection, err);
+  //   } finally {
+  //     connection.end();
+  //   }
+  // })().catch((err) => {
+  //   console.error(err);
+  // });
+
     const pool = mysql.createPool(poolOption);
     const connection = await new Promise((resolve, reject) => {
         pool.getConnection((error, connection) => {
@@ -194,7 +220,7 @@ app.get('/inout', (req, res) => {
                t_inout.note,
                m_inventory.inventory_name
                FROM t_inout
-               INNER JOIN stock.m_inventory ON t_inout.inventory_id = m_inventory.inventory_id
+               INNER JOIN m_inventory ON t_inout.inventory_id = m_inventory.inventory_id
                    AND m_inventory.delete_at IS NULL
                    AND m_inventory.update_at IS NULL
                WHERE t_inout.delete_at IS NULL
@@ -511,6 +537,7 @@ app.get('/login', (req, res) => {
         });
 });
 
-app.listen(port, () => {
+// app.listen(process.env.PORT || port);
+app.listen(process.env.PORT || port, () => {
     console.log(`listening on *:${port}`);
 })
